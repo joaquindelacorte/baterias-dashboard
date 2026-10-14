@@ -1,0 +1,8 @@
+{
+  "name": "baterias-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard de demanda de baterías AR",
+  "dependencies": {
+    "google-trends-api": "^4.9.2"
+  }
+}

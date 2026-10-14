@@ -1,8 +1,0 @@
-{
-  "name": "baterias-trends-function",
-  "version": "1.0.0",
-  "description": "Google Trends proxy for battery dashboard",
-  "dependencies": {
-    "google-trends-api": "^4.9.2"
-  }
-}
