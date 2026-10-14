@@ -115,6 +115,20 @@ input[type=range]::-webkit-slider-thumb{
 }
 .btn-play:hover{background:var(--card2)}
 
+
+/* EXPORT BUTTON */
+.btn-export{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 14px;border-radius:8px;
+  background:rgba(16,185,129,.15);color:var(--green);
+  border:1px solid rgba(16,185,129,.3);
+  font-size:.75rem;font-weight:700;cursor:pointer;
+  transition:background .2s,transform .15s;white-space:nowrap;
+}
+.btn-export:hover{background:rgba(16,185,129,.25);transform:translateY(-1px)}
+.btn-export:active{transform:translateY(0)}
+.btn-export:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
 /* LOADING OVERLAY */
 #loadOverlay{
   position:fixed;inset:0;z-index:2000;
@@ -160,6 +174,7 @@ input[type=range]::-webkit-slider-thumb{
   .timeline-bar{grid-row:3;grid-column:1}
 }
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -177,6 +192,7 @@ input[type=range]::-webkit-slider-thumb{
   <div class="nav-subtitle">Dashboard de Demanda &amp; Temperatura</div>
   <div class="nav-right">
     <span class="badge badge-loading" id="statusBadge">Cargando...</span>
+    <button class="btn-export" id="btnExport" onclick="exportToExcel()" disabled title="Exportar datos del mes seleccionado a Excel">&#x1F4E5; Exportar Excel</button>
     <span style="font-size:.75rem;color:var(--muted)" id="lastUpdate">--</span>
   </div>
 </nav>
@@ -631,6 +647,7 @@ function showDashboard(){
   document.getElementById('loadOverlay').classList.add('hidden');
   const b=document.getElementById('statusBadge');
   b.textContent='En vivo'; b.className='badge badge-live';
+  document.getElementById('btnExport').disabled=false;
   document.getElementById('lastUpdate').textContent=
     'Act. '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
 }
@@ -694,6 +711,105 @@ document.getElementById('btnPlay').addEventListener('click',()=>{
     await new Promise(r=>setTimeout(r,300));
   }
 })();
+// ═══════════════════════════════════════════════
+//  EXPORT TO EXCEL
+// ═══════════════════════════════════════════════
+function exportToExcel(){
+  const data = monthlyData[currentMonthIdx];
+  if(!data || !data.cityData) return;
+
+  const btn = document.getElementById('btnExport');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+
+  const d = data.month;
+  const monthStr = d.toLocaleDateString('es-AR',{month:'long',year:'numeric'});
+  const fileMonth = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+
+  // ── Sheet 1: Todos los municipios ─────────────────
+  const rows = data.cityData.map(c => ({
+    'Municipio':         c.nombre,
+    'Provincia':         c.prov_nombre,
+    'Latitud':           +c.lat.toFixed(5),
+    'Longitud':          +c.lon.toFixed(5),
+    'Temperatura (°C)':  +c.temp.toFixed(1),
+    'Interés Google (%)':c.interest,
+    'Score Demanda':     c.score,
+    'Nivel':             c.score>=76?'Muy alto':c.score>=51?'Alto':c.score>=26?'Medio':'Bajo',
+    'Período':           monthStr,
+  }));
+  // Sort by score desc
+  rows.sort((a,b) => b['Score Demanda'] - a['Score Demanda']);
+
+  const ws1 = XLSX.utils.json_to_sheet(rows);
+
+  // Column widths
+  ws1['!cols'] = [
+    {wch:26},{wch:22},{wch:10},{wch:10},{wch:16},{wch:20},{wch:14},{wch:12},{wch:20}
+  ];
+
+  // Header row style (SheetJS community doesn't support cell styles, but we can freeze panes)
+  ws1['!freeze'] = {xSplit:0, ySplit:1};
+
+  // ── Sheet 2: Resumen por provincia ───────────────
+  const byProv = {};
+  data.cityData.forEach(c => {
+    if(!byProv[c.prov_nombre]) byProv[c.prov_nombre] = {munis:[],totalInt:0,totalTemp:0,scores:[]};
+    byProv[c.prov_nombre].munis.push(c.nombre);
+    byProv[c.prov_nombre].totalInt  += c.interest;
+    byProv[c.prov_nombre].totalTemp += c.temp;
+    byProv[c.prov_nombre].scores.push(c.score);
+  });
+
+  const provRows = Object.entries(byProv).map(([prov,v]) => ({
+    'Provincia':              prov,
+    'Municipios':             v.munis.length,
+    'Score Promedio':         Math.round(v.scores.reduce((a,b)=>a+b,0)/v.scores.length),
+    'Score Máximo':           Math.max(...v.scores),
+    'Municipio Top':          data.cityData.filter(c=>c.prov_nombre===prov).sort((a,b)=>b.score-a.score)[0]?.nombre||'',
+    'Temp. Promedio (°C)':    +(v.totalTemp/v.munis.length).toFixed(1),
+    'Interés Promedio (%)':   Math.round(v.totalInt/v.munis.length),
+    'Período':                monthStr,
+  })).sort((a,b)=>b['Score Promedio']-a['Score Promedio']);
+
+  const ws2 = XLSX.utils.json_to_sheet(provRows);
+  ws2['!cols']=[{wch:26},{wch:12},{wch:15},{wch:14},{wch:26},{wch:18},{wch:20},{wch:20}];
+
+  // ── Sheet 3: Histórico cargado ───────────────────
+  const histRows = [];
+  for(let i=0;i<MONTHS;i++){
+    const md=monthlyData[i];
+    if(!md) continue;
+    const dd=md.month;
+    const avgScore=Math.round(md.cityData.reduce((a,c)=>a+c.score,0)/md.cityData.length);
+    const avgTemp= +(md.cityData.reduce((a,c)=>a+c.temp,0)/md.cityData.length).toFixed(1);
+    const avgInt = Math.round(md.cityData.reduce((a,c)=>a+c.interest,0)/md.cityData.length);
+    const top    = [...md.cityData].sort((a,b)=>b.score-a.score)[0];
+    histRows.push({
+      'Mes': dd.toLocaleDateString('es-AR',{month:'long',year:'numeric'}),
+      'Score Promedio Nacional': avgScore,
+      'Temperatura Promedio (°C)': avgTemp,
+      'Interés Promedio (%)': avgInt,
+      'Ciudad Top': top?.nombre||'--',
+      'Provincia Top': top?.prov_nombre||'--',
+      'Score Top': top?.score||0,
+    });
+  }
+  const ws3 = XLSX.utils.json_to_sheet(histRows);
+  ws3['!cols']=[{wch:22},{wch:24},{wch:24},{wch:22},{wch:26},{wch:22},{wch:12}];
+
+  // ── Workbook ──────────────────────────────────────
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, 'Municipios');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Por Provincia');
+  if(histRows.length) XLSX.utils.book_append_sheet(wb, ws3, 'Histórico');
+
+  XLSX.writeFile(wb, `baterias-AR_${fileMonth}.xlsx`);
+
+  btn.disabled = false;
+  btn.innerHTML = '&#x1F4E5; Exportar Excel';
+}
+
 </script>
 </body>
 </html>
