@@ -250,252 +250,330 @@ input[type=range]::-webkit-slider-thumb{
 
 <script>
 // ═══════════════════════════════════════════════
-//  DATOS
+//  CONSTANTES
 // ═══════════════════════════════════════════════
-const CIUDADES = [
-  {id:'AR-C', nombre:'Buenos Aires',     ciudad:'Buenos Aires (CABA)', lat:-34.6037,lon:-58.3816,prov:'Buenos Aires'},
-  {id:'AR-B', nombre:'Gran Buenos Aires',ciudad:'La Plata / Conurbano',lat:-34.9205,lon:-57.9536,prov:'Buenos Aires Pcia.'},
-  {id:'AR-X', nombre:'C&#xF3;rdoba',          ciudad:'C&#xF3;rdoba',            lat:-31.4201,lon:-64.1888,prov:'C&#xF3;rdoba'},
-  {id:'AR-S', nombre:'Santa Fe',         ciudad:'Rosario',             lat:-32.9468,lon:-60.6393,prov:'Santa Fe'},
-  {id:'AR-M', nombre:'Mendoza',          ciudad:'Mendoza',             lat:-32.8908,lon:-68.8272,prov:'Mendoza'},
-  {id:'AR-T', nombre:'Tucum&#xE1;n',         ciudad:'S.M. de Tucum&#xE1;n',    lat:-26.8083,lon:-65.2176,prov:'Tucum&#xE1;n'},
-  {id:'AR-A', nombre:'Salta',            ciudad:'Salta',               lat:-24.7821,lon:-65.4232,prov:'Salta'},
-  {id:'AR-Y', nombre:'Jujuy',            ciudad:'Jujuy',               lat:-24.1958,lon:-65.2993,prov:'Jujuy'},
-  {id:'AR-K', nombre:'Catamarca',        ciudad:'Catamarca',           lat:-28.4696,lon:-65.7795,prov:'Catamarca'},
-  {id:'AR-F', nombre:'La Rioja',         ciudad:'La Rioja',            lat:-29.4130,lon:-66.8558,prov:'La Rioja'},
-  {id:'AR-J', nombre:'San Juan',         ciudad:'San Juan',            lat:-31.5375,lon:-68.5364,prov:'San Juan'},
-  {id:'AR-D', nombre:'San Luis',         ciudad:'San Luis',            lat:-33.2960,lon:-66.3357,prov:'San Luis'},
-  {id:'AR-N', nombre:'Misiones',         ciudad:'Posadas',             lat:-27.3671,lon:-55.8967,prov:'Misiones'},
-  {id:'AR-W', nombre:'Corrientes',       ciudad:'Corrientes',          lat:-27.4692,lon:-58.8306,prov:'Corrientes'},
-  {id:'AR-H', nombre:'Chaco',            ciudad:'Resistencia',         lat:-27.4514,lon:-58.9867,prov:'Chaco'},
-  {id:'AR-G', nombre:'Sgo. del Estero',  ciudad:'Sgo. del Estero',     lat:-27.7951,lon:-64.2615,prov:'Santiago del Estero'},
-  {id:'AR-P', nombre:'Formosa',          ciudad:'Formosa',             lat:-26.1775,lon:-58.1781,prov:'Formosa'},
-  {id:'AR-E', nombre:'Entre R&#xED;os',      ciudad:'Paran&#xE1;',             lat:-31.7333,lon:-60.5333,prov:'Entre R&#xED;os'},
-  {id:'AR-L', nombre:'La Pampa',         ciudad:'Santa Rosa',          lat:-36.6167,lon:-64.2833,prov:'La Pampa'},
-  {id:'AR-Q', nombre:'Neuqu&#xE9;n',         ciudad:'Neuqu&#xE9;n',            lat:-38.9516,lon:-68.0591,prov:'Neuqu&#xE9;n'},
-  {id:'AR-R', nombre:'R&#xED;o Negro',       ciudad:'Viedma/Bariloche',    lat:-41.0,  lon:-71.0,   prov:'R&#xED;o Negro'},
-  {id:'AR-U', nombre:'Chubut',           ciudad:'Comodoro Rivadavia',  lat:-45.8667,lon:-67.5000,prov:'Chubut'},
-  {id:'AR-Z', nombre:'Santa Cruz',       ciudad:'R&#xED;o Gallegos',       lat:-51.6226,lon:-69.2181,prov:'Santa Cruz'},
-  {id:'AR-V', nombre:'T. del Fuego',     ciudad:'Ushuaia',             lat:-54.8019,lon:-68.3030,prov:'Tierra del Fuego'},
+
+// 24 centros provinciales → referencia de temperatura para IDW
+const PROV_REF = [
+  {tid:'AR-C',gid:'02',nombre:'CABA',          lat:-34.6037,lon:-58.3816},
+  {tid:'AR-B',gid:'06',nombre:'Buenos Aires',   lat:-36.6769,lon:-60.5589},
+  {tid:'AR-X',gid:'14',nombre:'C&oacute;rdoba',         lat:-31.4201,lon:-64.1888},
+  {tid:'AR-S',gid:'82',nombre:'Santa Fe',       lat:-31.6272,lon:-60.6987},
+  {tid:'AR-M',gid:'50',nombre:'Mendoza',        lat:-32.8908,lon:-68.8272},
+  {tid:'AR-T',gid:'90',nombre:'Tucum&aacute;n',         lat:-26.8083,lon:-65.2176},
+  {tid:'AR-A',gid:'66',nombre:'Salta',          lat:-24.7821,lon:-65.4232},
+  {tid:'AR-Y',gid:'38',nombre:'Jujuy',          lat:-24.1958,lon:-65.2993},
+  {tid:'AR-K',gid:'46',nombre:'Catamarca',      lat:-28.4696,lon:-65.7795},
+  {tid:'AR-F',gid:'46',nombre:'La Rioja',       lat:-29.4130,lon:-66.8558},
+  {tid:'AR-J',gid:'70',nombre:'San Juan',       lat:-31.5375,lon:-68.5364},
+  {tid:'AR-D',gid:'74',nombre:'San Luis',       lat:-33.2960,lon:-66.3357},
+  {tid:'AR-N',gid:'54',nombre:'Misiones',       lat:-27.0000,lon:-54.5000},
+  {tid:'AR-W',gid:'18',nombre:'Corrientes',     lat:-27.4692,lon:-58.8306},
+  {tid:'AR-H',gid:'22',nombre:'Chaco',          lat:-26.3856,lon:-60.7658},
+  {tid:'AR-G',gid:'86',nombre:'Sgo. del Estero',lat:-27.7951,lon:-64.2615},
+  {tid:'AR-P',gid:'34',nombre:'Formosa',        lat:-24.8943,lon:-60.0291},
+  {tid:'AR-E',gid:'30',nombre:'Entre R&iacute;os',      lat:-32.0589,lon:-59.2013},
+  {tid:'AR-L',gid:'42',nombre:'La Pampa',       lat:-36.6167,lon:-64.2833},
+  {tid:'AR-Q',gid:'58',nombre:'Neuqu&eacute;n',         lat:-38.9516,lon:-68.0591},
+  {tid:'AR-R',gid:'62',nombre:'R&iacute;o Negro',       lat:-41.1335,lon:-67.1891},
+  {tid:'AR-U',gid:'26',nombre:'Chubut',         lat:-43.2933,lon:-65.1021},
+  {tid:'AR-Z',gid:'78',nombre:'Santa Cruz',     lat:-51.6226,lon:-69.2181},
+  {tid:'AR-V',gid:'94',nombre:'T. del Fuego',   lat:-54.0000,lon:-68.5000},
 ];
+
+// Georef province ID → Google Trends code
+const PROV_TRENDS = {
+  '02':'AR-C','06':'AR-B','14':'AR-X','18':'AR-W','22':'AR-H',
+  '26':'AR-U','30':'AR-E','34':'AR-P','38':'AR-Y','42':'AR-L',
+  '46':'AR-F','50':'AR-M','54':'AR-N','58':'AR-Q','62':'AR-R',
+  '66':'AR-A','70':'AR-J','74':'AR-D','78':'AR-Z','82':'AR-S',
+  '86':'AR-G','90':'AR-T','94':'AR-V',
+};
+
+const CACHE_MUNI_KEY  = 'baterias_municipios_v2';
+const CACHE_DATA_PFX  = 'baterias_data_v2_';
+const CACHE_MUNI_DAYS = 30;
+const CACHE_DATA_DAYS = 7;
 
 // ═══════════════════════════════════════════════
 //  STATE
 // ═══════════════════════════════════════════════
 const MONTHS = 12;
-const today = new Date();
-let currentMonthIdx = MONTHS - 1;
-let monthlyData = new Array(MONTHS).fill(null);
-let heatLayer = null;
-let markers = [];
-let trendChart = null;
+const today  = new Date();
+let municipios   = [];
+let monthlyData  = new Array(MONTHS).fill(null);
+let heatLayer    = null;
+let topMarkers   = [];
+let trendChart   = null;
 let playInterval = null;
+let currentMonthIdx = MONTHS - 1;
 
-// Build month list (last 12 months)
-function getMonthDate(idx) {
-  const d = new Date(today.getFullYear(), today.getMonth() - (MONTHS - 1 - idx), 1);
-  return d;
+function getMonthDate(idx){
+  return new Date(today.getFullYear(), today.getMonth()-(MONTHS-1-idx), 1);
 }
-function fmtMonth(d) {
-  return d.toLocaleDateString('es-AR', {month:'short', year:'numeric'});
-}
-function fmtMonthFull(d) {
-  return d.toLocaleDateString('es-AR', {month:'long', year:'numeric'});
-}
+function fmtMonth(d){ return d.toLocaleDateString('es-AR',{month:'short',year:'numeric'}); }
+function fmtMonthFull(d){ return d.toLocaleDateString('es-AR',{month:'long',year:'numeric'}); }
 
 // ═══════════════════════════════════════════════
-//  MAP INIT
+//  MAP
 // ═══════════════════════════════════════════════
-const map = L.map('map', {
-  center: [-38, -65],
-  zoom: 4,
-  zoomControl: true,
-  attributionControl: true
-});
-
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19
+const map = L.map('map',{center:[-38,-65],zoom:4,zoomControl:true});
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom:19
 }).addTo(map);
 
 // ═══════════════════════════════════════════════
-//  API CALLS
+//  GEOREF — municipios
 // ═══════════════════════════════════════════════
+async function loadMunicipios(){
+  // 1. Try localStorage cache
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_MUNI_KEY)||'null');
+    if(cached && cached.ts && (Date.now()-cached.ts < CACHE_MUNI_DAYS*86400000)){
+      return cached.data;
+    }
+  } catch(e){}
 
-// Open-Meteo: fetch temperature for a month
-async function fetchTemp(lat, lon, year, month) {
+  setLoadMsg('Descargando municipios de Argentina...');
+  let all = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while(true){
+    const url = `https://apis.datos.gob.ar/georef/api/municipios?max=${pageSize}&inicio=${offset}&campos=id,nombre,provincia.id,provincia.nombre,centroide.lat,centroide.lon&orden=id`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const items = d.municipios || [];
+    all = all.concat(items.map(m => ({
+      id:   m.id,
+      nombre: m.nombre,
+      prov_id:   m.provincia.id,
+      prov_nombre: m.provincia.nombre,
+      lat: m.centroide.lat,
+      lon: m.centroide.lon,
+    })));
+    setLoadMsg(`Descargando municipios... ${all.length}/${d.total}`);
+    if(all.length >= d.total) break;
+    offset += pageSize;
+  }
+
+  // Add CABA comunas if not present
+  // Georef may return CABA's 15 comunas as municipios already
+
+  try {
+    localStorage.setItem(CACHE_MUNI_KEY, JSON.stringify({ts:Date.now(), data:all}));
+  } catch(e){ /* quota exceeded — skip cache */ }
+  return all;
+}
+
+// ═══════════════════════════════════════════════
+//  TEMPERATURA (Open-Meteo + IDW)
+// ═══════════════════════════════════════════════
+async function fetchProvinceTemps(year, month){
   const pad = m => String(m).padStart(2,'0');
   const lastDay = new Date(year, month, 0).getDate();
   const start = `${year}-${pad(month)}-01`;
   const end   = `${year}-${pad(month)}-${lastDay}`;
-  // Use archive for past months, forecast for current
-  const now = new Date();
-  const isCurrent = (year === now.getFullYear() && month === now.getMonth()+1);
-  let url;
-  if (isCurrent) {
-    url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_mean&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=1`;
-  } else {
-    url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_mean&timezone=America%2FArgentina%2FBuenos_Aires`;
+  const now   = new Date();
+  const isCurrent = (year===now.getFullYear() && month===now.getMonth()+1);
+
+  const BATCH = 6;
+  const results = [];
+  for(let i=0; i<PROV_REF.length; i+=BATCH){
+    const slice = PROV_REF.slice(i,i+BATCH);
+    const temps = await Promise.all(slice.map(async p => {
+      let url;
+      if(isCurrent){
+        url=`https://api.open-meteo.com/v1/forecast?latitude=${p.lat}&longitude=${p.lon}&daily=temperature_2m_mean&timezone=America%2FArgentina%2FBuenos_Aires&forecast_days=1`;
+      } else {
+        url=`https://archive-api.open-meteo.com/v1/archive?latitude=${p.lat}&longitude=${p.lon}&start_date=${start}&end_date=${end}&daily=temperature_2m_mean&timezone=America%2FArgentina%2FBuenos_Aires`;
+      }
+      try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const vals=(d.daily?.temperature_2m_mean||[]).filter(v=>v!==null);
+        return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+      } catch(e){ return null; }
+    }));
+    temps.forEach((t,j) => results.push({...slice[j], temp:t}));
   }
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(r.status);
-    const d = await r.json();
-    const vals = (d.daily?.temperature_2m_mean || []).filter(v => v !== null);
-    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-  } catch(e) {
-    return null;
-  }
+  return results; // [{lat,lon,temp,...}, ...]
 }
 
-// Google Trends via Netlify Function
-async function fetchTrends(year, month) {
+function haversineKm(lat1,lon1,lat2,lon2){
+  const R=6371, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function idwTemp(lat,lon,refPoints){
+  let wSum=0, tSum=0;
+  for(const r of refPoints){
+    if(r.temp===null) continue;
+    const d=haversineKm(lat,lon,r.lat,r.lon);
+    if(d<1) return r.temp;
+    const w=1/(d*d);
+    wSum+=w; tSum+=w*r.temp;
+  }
+  return wSum>0 ? tSum/wSum : 20;
+}
+
+// ═══════════════════════════════════════════════
+//  GOOGLE TRENDS (Netlify Function)
+// ═══════════════════════════════════════════════
+async function fetchTrends(year, month){
   try {
-    const pad = m => String(m).padStart(2,'0');
-    const lastDay = new Date(year, month, 0).getDate();
-    const url = `/.netlify/functions/trends?start=${year}-${pad(month)}-01&end=${year}-${pad(month)}-${lastDay}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(r.status);
+    const pad=m=>String(m).padStart(2,'0');
+    const lastDay=new Date(year,month,0).getDate();
+    const url=`/.netlify/functions/trends?start=${year}-${pad(month)}-01&end=${year}-${pad(month)}-${lastDay}`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error(r.status);
     return await r.json();
-  } catch(e) {
-    return null;
-  }
+  } catch(e){ return null; }
 }
 
 // ═══════════════════════════════════════════════
-//  SCORE CALCULATION
+//  SCORE
 // ═══════════════════════════════════════════════
-function calcScore(temp, interest) {
-  // Battery stress: extreme heat (>35) or cold (<5) = high stress
-  const IDEAL = 18;
-  const stress = Math.min(1, Math.abs((temp || IDEAL) - IDEAL) / 22);
-  const norm_interest = (interest || 50) / 100;
-  return Math.round(norm_interest * 65 + stress * 35);
+function calcScore(temp,interest){
+  const stress=Math.min(1,Math.abs((temp||18)-18)/22);
+  return Math.round((interest||50)/100*65+stress*35);
 }
-
-function scoreColor(score) {
-  // 0-25: blue, 26-50: green, 51-75: amber, 76-100: red
-  if (score < 26) return '#3b82f6';
-  if (score < 51) return '#10b981';
-  if (score < 76) return '#f59e0b';
+function scoreColor(s){
+  if(s<26) return '#3b82f6';
+  if(s<51) return '#10b981';
+  if(s<76) return '#f59e0b';
   return '#ef4444';
 }
 
 // ═══════════════════════════════════════════════
 //  LOAD MONTH DATA
 // ═══════════════════════════════════════════════
-async function loadMonthData(idx) {
-  if (monthlyData[idx]) return monthlyData[idx];
-  const d = getMonthDate(idx);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
+async function loadMonthData(idx){
+  if(monthlyData[idx]) return monthlyData[idx];
+  const d=getMonthDate(idx);
+  const year=d.getFullYear(), month=d.getMonth()+1;
+  const cacheKey=`${CACHE_DATA_PFX}${year}-${String(month).padStart(2,'0')}`;
+  const isPast=!(year===today.getFullYear()&&month===today.getMonth()+1);
 
-  setLoadMsg(`Cargando ${fmtMonthFull(d)}...`);
+  // Try cache
+  try {
+    const cached=JSON.parse(sessionStorage.getItem(cacheKey)||localStorage.getItem(cacheKey)||'null');
+    if(cached&&cached.ts&&(isPast||(Date.now()-cached.ts<CACHE_DATA_DAYS*86400000))){
+      monthlyData[idx]={cityData:cached.data, month:d};
+      return monthlyData[idx];
+    }
+  } catch(e){}
 
-  // Fetch temperatures in parallel (batched to avoid rate limits)
-  const BATCH = 6;
-  const temps = new Array(CIUDADES.length).fill(null);
-  for (let i = 0; i < CIUDADES.length; i += BATCH) {
-    const slice = CIUDADES.slice(i, i+BATCH);
-    const res = await Promise.all(slice.map(c => fetchTemp(c.lat, c.lon, year, month)));
-    res.forEach((v, j) => { temps[i+j] = v; });
+  setLoadMsg(`Cargando temperaturas — ${fmtMonthFull(d)}...`);
+  const provTemps  = await fetchProvinceTemps(year, month);
+
+  setLoadMsg(`Cargando Google Trends — ${fmtMonthFull(d)}...`);
+  const trendsRaw  = await fetchTrends(year, month);
+
+  // Build interest map: Trends code → interest 0-100
+  const interestMap={};
+  if(trendsRaw?.geoMapData){
+    trendsRaw.geoMapData.forEach(item=>{ interestMap[item.geoCode]=item.value?.[0]??50; });
   }
 
-  // Fetch trends (may be null if not on Netlify)
-  const trendsRaw = await fetchTrends(year, month);
-  // Build interest map by province code
-  const interestMap = {};
-  if (trendsRaw?.geoMapData) {
-    trendsRaw.geoMapData.forEach(item => {
-      interestMap[item.geoCode] = item.value?.[0] ?? 50;
-    });
-  }
+  // Synthetic fallback seeded by month
+  const seed=year*100+month;
+  const pseudoR=n=>{ let x=Math.sin(n*9301+seed*49297+233)*49297; return x-Math.floor(x); };
+  const POP_BASE={'02':100,'06':90,'14':45,'82':42,'50':28,'90':18,'66':14,'38':10,
+                  '46':8,'70':9,'74':7,'54':9,'18':8,'22':7,'86':7,'34':6,
+                  '30':12,'42':5,'58':10,'62':8,'26':7,'78':3,'94':4};
 
-  // Fallback: synthetic interest based on population + randomness seeded by month
-  const seed = year * 100 + month;
-  const pseudoRand = (n) => {
-    let x = Math.sin(n * 9301 + seed * 49297 + 233) * 49297;
-    return x - Math.floor(x);
-  };
-  const POP_W = [100,90,45,42,28,18,14,10,8,7,9,7,9,8,7,7,6,12,5,10,8,7,3,4]; // relative population weights
-
-  const cityData = CIUDADES.map((c, i) => {
-    const temp = temps[i] ?? (20 - (Math.abs(c.lat + 35) * 0.5));
-    const interest = interestMap[c.id] ?? Math.round(POP_W[i] * 0.7 + pseudoRand(i) * 30 + 10);
+  setLoadMsg(`Calculando scores para ${municipios.length} municipios...`);
+  const cityData = municipios.map((m,i)=>{
+    const temp     = idwTemp(m.lat, m.lon, provTemps);
+    const tcode    = PROV_TRENDS[m.prov_id];
+    const baseInt  = POP_BASE[m.prov_id] || 10;
+    const interest = tcode && interestMap[tcode]
+      ? Math.min(100, interestMap[tcode] * (0.8 + pseudoR(i)*0.4))
+      : Math.min(100, baseInt * (0.7 + pseudoR(i)*0.6) + 5);
     const score = calcScore(temp, interest);
-    return { ...c, temp, interest: Math.min(100, interest), score };
+    return {
+      id:m.id, nombre:m.nombre,
+      prov_id:m.prov_id, prov_nombre:m.prov_nombre,
+      lat:m.lat, lon:m.lon,
+      temp, interest:Math.round(interest), score
+    };
   });
 
-  monthlyData[idx] = { cityData, month: d };
+  monthlyData[idx]={cityData, month:d};
+
+  // Cache
+  try {
+    const payload=JSON.stringify({ts:Date.now(),data:cityData});
+    if(isPast) localStorage.setItem(cacheKey, payload);
+    else sessionStorage.setItem(cacheKey, payload);
+  } catch(e){}
+
   return monthlyData[idx];
 }
 
 // ═══════════════════════════════════════════════
-//  RENDER
+//  RENDER MAP
 // ═══════════════════════════════════════════════
-function renderMap(data) {
-  const { cityData } = data;
+function renderMap(data){
+  const {cityData}=data;
+  if(heatLayer){ map.removeLayer(heatLayer); }
+  topMarkers.forEach(m=>map.removeLayer(m));
+  topMarkers=[];
 
-  // Clear old layers
-  if (heatLayer) map.removeLayer(heatLayer);
-  markers.forEach(m => map.removeLayer(m));
-  markers = [];
-
-  // Heatmap points [lat, lon, intensity]
-  const heatPoints = cityData.map(c => [c.lat, c.lon, c.score / 100]);
-  heatLayer = L.heatLayer(heatPoints, {
-    radius: 70, blur: 55, maxZoom: 7,
-    gradient: {0.0:'#1e3a5f',0.3:'#3b82f6',0.5:'#10b981',0.7:'#f59e0b',1.0:'#ef4444'}
+  // Heatmap — todos los municipios
+  const heatPoints=cityData.map(c=>[c.lat,c.lon,c.score/100]);
+  heatLayer=L.heatLayer(heatPoints,{
+    radius:30, blur:22, maxZoom:14,
+    gradient:{0.0:'#1e3a5f',0.3:'#3b82f6',0.5:'#10b981',0.7:'#f59e0b',1.0:'#ef4444'}
   }).addTo(map);
 
-  // City markers
-  cityData.forEach(c => {
-    const r = 5 + (c.score / 100) * 12;
-    const col = scoreColor(c.score);
-    const circle = L.circleMarker([c.lat, c.lon], {
-      radius: r,
-      fillColor: col,
-      color: 'rgba(0,0,0,.4)',
-      weight: 1,
-      fillOpacity: 0.85,
+  // Markers — solo top 80 con popup
+  const top80=[...cityData].sort((a,b)=>b.score-a.score).slice(0,80);
+  top80.forEach(c=>{
+    const col=scoreColor(c.score);
+    const r=4+(c.score/100)*9;
+    const mk=L.circleMarker([c.lat,c.lon],{
+      radius:r, fillColor:col,
+      color:'rgba(0,0,0,.3)', weight:1, fillOpacity:0.9
     }).addTo(map);
-
-    circle.bindPopup(`
-      <div class="popup-title">&#x1F4CD; ${c.ciudad}</div>
-      <div class="popup-row"><span>Temperatura</span><span><strong>${c.temp !== null ? c.temp.toFixed(1) + '&#xB0;C' : 'N/D'}</strong></span></div>
-      <div class="popup-row"><span>Inter&#xE9;s Google</span><span><strong>${c.interest}%</strong></span></div>
-      <div class="popup-row"><span>Provincia</span><span>${c.prov}</span></div>
-      <div class="popup-score" style="color:${col}">
-        Score Demanda: ${c.score}/100
-      </div>
+    mk.bindPopup(`
+      <div class="popup-title">&#x1F4CD; ${c.nombre}</div>
+      <div class="popup-row"><span>Provincia</span><span>${c.prov_nombre}</span></div>
+      <div class="popup-row"><span>Temperatura</span><span><strong>${c.temp.toFixed(1)}&deg;C</strong></span></div>
+      <div class="popup-row"><span>Inter&eacute;s Google</span><span><strong>${c.interest}%</strong></span></div>
+      <div class="popup-score" style="color:${col}">Score demanda: ${c.score}/100</div>
     `);
-    markers.push(circle);
+    topMarkers.push(mk);
   });
 }
 
-function renderKPIs(data) {
-  const { cityData } = data;
-  const sorted = [...cityData].sort((a,b) => b.score - a.score);
-  const topCity = sorted[0];
-  const avgTemp = cityData.filter(c=>c.temp!==null).reduce((a,c)=>a+c.temp,0) / cityData.filter(c=>c.temp!==null).length;
-  const avgInterest = Math.round(cityData.reduce((a,c)=>a+c.interest,0)/cityData.length);
-  const temps = cityData.filter(c=>c.temp!==null).map(c=>c.temp);
-  const range = temps.length ? (Math.max(...temps) - Math.min(...temps)).toFixed(1) : '--';
+// ═══════════════════════════════════════════════
+//  RENDER KPIs + SIDEBAR
+// ═══════════════════════════════════════════════
+function renderKPIs(data){
+  const {cityData}=data;
+  const sorted=[...cityData].sort((a,b)=>b.score-a.score);
+  const top=sorted[0];
+  const temps=cityData.filter(c=>c.temp!==null).map(c=>c.temp);
+  const avgTemp=temps.reduce((a,b)=>a+b,0)/temps.length;
+  const avgInt =Math.round(cityData.reduce((a,c)=>a+c.interest,0)/cityData.length);
+  const range  =(Math.max(...temps)-Math.min(...temps)).toFixed(1);
 
-  document.getElementById('kpiTopCity').textContent = topCity?.nombre || '--';
-  document.getElementById('kpiTempProm').textContent = avgTemp ? avgTemp.toFixed(1) + '&#xB0;C' : '--&#xB0;C';
-  document.getElementById('kpiTempProm').innerHTML = avgTemp ? avgTemp.toFixed(1) + '&deg;C' : '--&deg;C';
-  document.getElementById('kpiInterest').textContent = avgInterest + '%';
-  document.getElementById('kpiTempRange').innerHTML = range + '&deg;C';
+  document.getElementById('kpiTopCity').textContent=top?.nombre||'--';
+  document.getElementById('kpiTempProm').innerHTML=avgTemp.toFixed(1)+'&deg;C';
+  document.getElementById('kpiInterest').textContent=avgInt+'%';
+  document.getElementById('kpiTempRange').innerHTML=range+'&deg;C';
 
-  // City list (top 7)
-  const list = document.getElementById('cityList');
-  list.innerHTML = sorted.slice(0,7).map((c,i) => `
-    <div class="city-item" onclick="map.flyTo([${c.lat},${c.lon}],8,{duration:1})">
+  const list=document.getElementById('cityList');
+  list.innerHTML=sorted.slice(0,8).map((c,i)=>`
+    <div class="city-item" onclick="map.flyTo([${c.lat},${c.lon}],10,{duration:1.2})">
       <div class="city-rank">#${i+1}</div>
       <div class="city-info">
-        <div class="city-name">${c.ciudad}</div>
-        <div class="city-meta">${c.temp!==null?c.temp.toFixed(1)+'&deg;C &mdash; ':''}${c.interest}% inter&eacute;s</div>
+        <div class="city-name">${c.nombre}</div>
+        <div class="city-meta">${c.prov_nombre} &mdash; ${c.temp.toFixed(1)}&deg;C &mdash; ${c.interest}%</div>
       </div>
       <div>
         <div class="city-bar-wrap">
@@ -507,132 +585,113 @@ function renderKPIs(data) {
   `).join('');
 }
 
-function renderTrendChart() {
-  const labels = Array.from({length:MONTHS},(_, i) => {
-    const d = getMonthDate(i);
+// ═══════════════════════════════════════════════
+//  TREND CHART
+// ═══════════════════════════════════════════════
+function renderTrendChart(){
+  const labels=Array.from({length:MONTHS},(_,i)=>{
+    const d=getMonthDate(i);
     return d.toLocaleDateString('es-AR',{month:'short'}).replace('.','');
   });
-
-  // Collect national average score per loaded month
-  const scores = Array.from({length:MONTHS},(_,i) => {
-    const md = monthlyData[i];
-    if (!md) return null;
-    const avg = md.cityData.reduce((a,c)=>a+c.score,0)/md.cityData.length;
-    return Math.round(avg);
+  const scores=Array.from({length:MONTHS},(_,i)=>{
+    const md=monthlyData[i];
+    if(!md) return null;
+    return Math.round(md.cityData.reduce((a,c)=>a+c.score,0)/md.cityData.length);
   });
-
-  if (trendChart) trendChart.destroy();
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  trendChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Score promedio nacional',
-        data: scores,
-        borderColor: '#f59e0b',
-        backgroundColor: 'rgba(245,158,11,.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: scores.map((v,i) => i === currentMonthIdx ? 6 : 3),
-        pointBackgroundColor: scores.map((v,i) => i === currentMonthIdx ? '#f59e0b' : 'rgba(245,158,11,.5)'),
-        spanGaps: true,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color:'#64748b', font:{size:9} }, grid: { color:'rgba(255,255,255,.04)' } },
-        y: { min:0, max:100, ticks: { color:'#64748b', font:{size:9} }, grid: { color:'rgba(255,255,255,.04)' } }
+  if(trendChart) trendChart.destroy();
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  trendChart=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Score promedio nacional',
+      data:scores,
+      borderColor:'#f59e0b',
+      backgroundColor:'rgba(245,158,11,.1)',
+      fill:true, tension:0.4, spanGaps:true,
+      pointRadius:scores.map((_,i)=>i===currentMonthIdx?6:3),
+      pointBackgroundColor:scores.map((_,i)=>i===currentMonthIdx?'#f59e0b':'rgba(245,158,11,.5)'),
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{min:0,max:100,ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(255,255,255,.04)'}}
       }
     }
   });
 }
 
 // ═══════════════════════════════════════════════
-//  MAIN FLOW
+//  CONTROLS
 // ═══════════════════════════════════════════════
-function setLoadMsg(msg) { document.getElementById('loadMsg').textContent = msg; }
+function setLoadMsg(msg){ document.getElementById('loadMsg').textContent=msg; }
 
-function showDashboard() {
+function showDashboard(){
   document.getElementById('loadOverlay').classList.add('hidden');
-  const badge = document.getElementById('statusBadge');
-  badge.textContent = 'En vivo';
-  badge.className = 'badge badge-live';
-  const now = new Date();
-  document.getElementById('lastUpdate').textContent =
-    'Actualizado ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
+  const b=document.getElementById('statusBadge');
+  b.textContent='En vivo'; b.className='badge badge-live';
+  document.getElementById('lastUpdate').textContent=
+    'Act. '+new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'});
 }
 
-async function switchMonth(idx) {
-  currentMonthIdx = idx;
-  const d = getMonthDate(idx);
-  document.getElementById('tlMonth').textContent = fmtMonth(d).charAt(0).toUpperCase() + fmtMonth(d).slice(1);
-  document.getElementById('timelineSlider').value = idx;
+async function switchMonth(idx){
+  currentMonthIdx=idx;
+  const d=getMonthDate(idx);
+  const lbl=fmtMonth(d); 
+  document.getElementById('tlMonth').textContent=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+  document.getElementById('timelineSlider').value=idx;
 
-  const badge = document.getElementById('statusBadge');
-  badge.textContent = 'Cargando...';
-  badge.className = 'badge badge-loading';
+  const b=document.getElementById('statusBadge');
+  b.textContent='Cargando...'; b.className='badge badge-loading';
 
-  const data = await loadMonthData(idx);
+  const data=await loadMonthData(idx);
   renderMap(data);
   renderKPIs(data);
   renderTrendChart();
 
-  badge.textContent = 'En vivo';
-  badge.className = 'badge badge-live';
+  b.textContent='En vivo'; b.className='badge badge-live';
 }
 
-// ═══════════════════════════════════════════════
-//  TIMELINE CONTROLS
-// ═══════════════════════════════════════════════
-document.getElementById('timelineSlider').addEventListener('input', e => {
-  switchMonth(+e.target.value);
-});
+document.getElementById('timelineSlider').addEventListener('input',e=>switchMonth(+e.target.value));
 
-document.getElementById('btnPlay').addEventListener('click', () => {
-  if (playInterval) {
-    clearInterval(playInterval);
-    playInterval = null;
-    document.getElementById('btnPlay').innerHTML = '&#x25B6;';
+document.getElementById('btnPlay').addEventListener('click',()=>{
+  if(playInterval){
+    clearInterval(playInterval); playInterval=null;
+    document.getElementById('btnPlay').innerHTML='&#x25B6;';
   } else {
-    document.getElementById('btnPlay').innerHTML = '&#x23F8;';
-    let idx = 0;
-    playInterval = setInterval(async () => {
+    document.getElementById('btnPlay').innerHTML='&#x23F8;';
+    let idx=0;
+    playInterval=setInterval(async()=>{
       await switchMonth(idx);
-      idx = (idx + 1) % MONTHS;
-      if (idx === 0) {
-        clearInterval(playInterval);
-        playInterval = null;
-        document.getElementById('btnPlay').innerHTML = '&#x25B6;';
-      }
-    }, 1800);
+      idx=(idx+1)%MONTHS;
+      if(idx===0){ clearInterval(playInterval); playInterval=null; document.getElementById('btnPlay').innerHTML='&#x25B6;'; }
+    },2000);
   }
 });
 
 // ═══════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════
-(async () => {
-  // Set timeline label
-  const d = getMonthDate(MONTHS - 1);
-  document.getElementById('tlMonth').textContent =
-    fmtMonth(d).charAt(0).toUpperCase() + fmtMonth(d).slice(1);
-  document.getElementById('timelineSlider').value = MONTHS - 1;
+(async()=>{
+  const d=getMonthDate(MONTHS-1);
+  const lbl=fmtMonth(d);
+  document.getElementById('tlMonth').textContent=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+  document.getElementById('timelineSlider').value=MONTHS-1;
 
-  // Load current month
-  setLoadMsg('Obteniendo temperaturas de Open-Meteo...');
-  await switchMonth(MONTHS - 1);
+  // 1. Load all municipalities
+  municipios=await loadMunicipios();
+  setLoadMsg(`${municipios.length} municipios cargados. Obteniendo temperaturas...`);
 
+  // 2. Load current month
+  await switchMonth(MONTHS-1);
   showDashboard();
 
-  // Background-load previous months progressively
-  for (let i = MONTHS - 2; i >= 0; i--) {
+  // 3. Background-load previous months
+  for(let i=MONTHS-2;i>=0;i--){
     await loadMonthData(i);
     renderTrendChart();
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise(r=>setTimeout(r,300));
   }
 })();
 </script>
